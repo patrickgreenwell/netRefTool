@@ -15,15 +15,6 @@ namespace netRefTool
 
         static void Main(string[] args)
         {
-
-            //Check to see if you can type, this tells you if it's piped entry or not.
-            if (Console.IsInputRedirected)
-            {
-                //Piped entry
-                var entry = Console.ReadLine();
-                var entries = entry.Split(' ');
-                args = entries;
-            }
             var stuff = args.ToList();
             bool verbose = stuff.Contains("-v");
             if (verbose)
@@ -31,16 +22,29 @@ namespace netRefTool
                 outFormat = "{0}";
                 stuff.Remove("-v");
             }
+            //Check to see if you can type, this tells you if it's piped entry or not.
+            if (Console.IsInputRedirected)
+            {
+                //Piped entry
+                string entry = Console.In.ReadToEnd();
+                var entries = entry.Split(Environment.NewLine.ToCharArray());
+                args = entries;
+            }
+            stuff = args.ToList();
+            stuff.RemoveAll(x => string.IsNullOrWhiteSpace(x));
+
             foreach (var item in stuff)
             {
+                var assembly = LoadAssemblySafe(item);
+                Console.Out.WriteLine("{1}References for: {0}", assembly.FullName,Environment.NewLine);
                 if (!verbose)
                 {
-                    Console.Out.WriteLine("{0}", item.Substring(item.LastIndexOf(@"\") + 1));
                     Console.Out.WriteLine();
                     Console.Out.WriteLine(outFormat, new string[] { "Assembly Name", "Version", "ProcessorArchitecture", "culture" });
-                    Console.Out.Write("".PadRight(80, '-'));
+                    Console.Out.WriteLine("".PadRight(80, '-'));
 
-                } var referencedAssemblies = FindReferencedAssemblies(item);
+                }
+                var referencedAssemblies = FindReferencedAssemblies(assembly);
                 foreach (var referenced in referencedAssemblies)
                 {
                     Console.Out.WriteLine(outFormat, new object[] { (verbose ? referenced.FullName : referenced.Name), referenced.Version, referenced.ProcessorArchitecture, referenced.CultureName });
@@ -49,12 +53,12 @@ namespace netRefTool
 
         }
 
-        static AssemblyName[] FindReferencedAssemblies(string filePath)
+        private static Assembly LoadAssemblySafe(string filePath)
         {
             try
             {
                 Assembly a = Assembly.LoadFile(filePath);
-                return FindReferencedAssemblies(a);
+                return a;
             }
             catch (Exception ex)
             {
@@ -63,8 +67,8 @@ namespace netRefTool
                 Environment.Exit(-1);
                 return null;
             }
-
         }
+
         static AssemblyName[] FindReferencedAssemblies(Assembly assebmly)
         {
             AssemblyName[] names = assebmly.GetReferencedAssemblies();
