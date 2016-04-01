@@ -17,11 +17,6 @@ namespace netRefTool
         {
             var stuff = args.ToList();
             bool verbose = stuff.Contains("-v");
-            if (verbose)
-            {
-                outFormat = "{0}";
-                stuff.Remove("-v");
-            }
             //Check to see if you can type, this tells you if it's piped entry or not.
             if (Console.IsInputRedirected)
             {
@@ -31,6 +26,13 @@ namespace netRefTool
                 args = entries;
             }
             stuff = args.ToList();
+
+            if (verbose)
+            {
+                outFormat = "{0}";
+                stuff.Remove("-v");
+            }
+
             stuff.RemoveAll(x => string.IsNullOrWhiteSpace(x));
 
             foreach (var item in stuff)
